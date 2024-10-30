@@ -16,8 +16,8 @@ resource "aws_cloudfront_distribution" "bucket_cloudfront" {
   }
   default_cache_behavior {
     viewer_protocol_policy = "redirect-to-https" #"allow-all"
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "origin_oic"
 
     forwarded_values {

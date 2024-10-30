@@ -28,3 +28,8 @@ variable "aws_account_id" {
   type        = string
   sensitive   = true
 }
+variable "sns_topic" {
+  description = "sns_topic"
+  type        = string
+  sensitive   = true
+}

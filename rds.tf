@@ -32,6 +32,7 @@ resource "aws_db_instance" "webapplication_database" {
   backup_retention_period   = 7
   skip_final_snapshot       = false
   final_snapshot_identifier = "finalSnapshotWebapplicationDatabase"
+  publicly_accessible       = true
 
   vpc_security_group_ids = [aws_security_group.db_security_group.id]
 }
@@ -50,7 +51,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
-  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
+  alarm_actions = [var.sns_topic]
 }
 
 # database connections alarm 
@@ -67,7 +68,7 @@ resource "aws_cloudwatch_metric_alarm" "connections_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
-  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
+  alarm_actions = [var.sns_topic]
 }
 
 # database disk alarm
@@ -84,5 +85,5 @@ resource "aws_cloudwatch_metric_alarm" "disk_space_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
-  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
+  alarm_actions = [var.sns_topic]
 }
