@@ -61,3 +61,23 @@ resource "aws_s3_bucket_policy" "s3_bucket_policy" {
   bucket = aws_s3_bucket.webapplicationbucket.id
   policy = data.aws_iam_policy_document.webapplicationbucket_s3_policy.json
 }
+
+
+# cloudwatch alert
+resource "aws_cloudwatch_metric_alarm" "s3_storage_alarm" {
+  alarm_name          = "S3StorageAlarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name        = "BucketSizeBytes"
+  namespace          = "AWS/S3"
+  period             = "86400" # 1 day
+  statistic          = "Average"
+  threshold          = 1000000000 # 1 GB
+  alarm_description  = "alert storage > 1 GB"
+  dimensions = {
+    BucketName = aws_s3_bucket.webapplicationbucket.bucket
+    StorageType = "StandardStorage"
+  }
+
+  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
+}

@@ -50,6 +50,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
+  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
 }
 
 # database connections alarm 
@@ -66,6 +67,7 @@ resource "aws_cloudwatch_metric_alarm" "connections_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
+  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
 }
 
 # database disk alarm
@@ -82,4 +84,5 @@ resource "aws_cloudwatch_metric_alarm" "disk_space_alarm" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.webapplication_database.id
   }
+  alarm_actions = ["arn:aws:sns:us-east-1:879381245435:Notifications"]
 }
