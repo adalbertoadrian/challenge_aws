@@ -91,10 +91,10 @@ resource "aws_security_group" "instance_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 22 # Permitir acceso SSH
+    from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Cambia esto para restringir el acceso según sea necesario
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -108,13 +108,19 @@ resource "aws_security_group" "instance_security_group" {
 # template
 resource "aws_launch_template" "wordpress_template" {
   name_prefix   = "challenger"
-  image_id      = "ami-08cf0cfa9f9f1b01f"
+  image_id      = "ami-0ddac4781e05b61ec"
   instance_type = "t2.micro"
+
+  monitoring {
+    enabled = true
+  }
 
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.instance_security_group.id]
   }
+
+  user_data = filebase64("${path.module}/ec2_launch.sh")
 }
 
 # autoscaling group
@@ -128,10 +134,77 @@ resource "aws_autoscaling_group" "wordpress_autoscaling" {
     id      = aws_launch_template.wordpress_template.id
     version = "$Latest"
   }
+
+  enabled_metrics = [
+    "GroupMinSize",
+    "GroupMaxSize",
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupTotalInstances"
+  ]
+  metrics_granularity = "1Minute"
 }
 
 # autoscaling group attachment
 resource "aws_autoscaling_attachment" "wordpress_template_attachment" {
   autoscaling_group_name = aws_autoscaling_group.wordpress_autoscaling.id
   lb_target_group_arn    = aws_lb_target_group.wordpress_target_group.arn
+}
+
+# scaling up cpu policy
+resource "aws_autoscaling_policy" "wordpress_web_policy_up" {
+  name                   = "web_policy_up"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.wordpress_autoscaling.name
+}
+
+# scaling up cpu alarm
+resource "aws_cloudwatch_metric_alarm" "wordpress_web_cpu_alarm_up" {
+  alarm_name          = "web_cpu_alarm_up"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "120"
+  statistic           = "Average"
+  threshold           = "70"
+  dimensions = {
+    AutoScalingGroupName = "${aws_autoscaling_group.wordpress_autoscaling.name}"
+  }
+  alarm_description = "This metric monitor EC2 instance CPU utilization"
+  alarm_actions = [
+    "${aws_autoscaling_policy.wordpress_web_policy_up.arn}",
+    var.sns_topic
+  ]
+}
+
+# scaling down cpu policy
+resource "aws_autoscaling_policy" "wordpress_web_policy_down" {
+  name                   = "web_policy_down"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.wordpress_autoscaling.name
+}
+
+# scaling down cpu alarm
+resource "aws_cloudwatch_metric_alarm" "wordpress_web_cpu_alarm_down" {
+  alarm_name          = "web_cpu_alarm_down"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "120"
+  statistic           = "Average"
+  threshold           = "60"
+  dimensions = {
+    AutoScalingGroupName = "${aws_autoscaling_group.wordpress_autoscaling.name}"
+  }
+  alarm_description = "This metric monitor EC2 instance CPU utilization"
+  alarm_actions = [
+    "${aws_autoscaling_policy.wordpress_web_policy_down.arn}",
+    var.sns_topic
+  ]
 }
