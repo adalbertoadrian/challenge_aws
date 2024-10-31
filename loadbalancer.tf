@@ -38,8 +38,28 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "redirect"
+    redirect {
+      host        = "#{host}"
+      path        = "/"
+      port        = "443"
+      protocol    = "HTTPS"
+      query       = "#{query}"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.wordpress_lb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = "arn:aws:acm:us-east-1:879381245435:certificate/95e34038-6e11-483e-9f52-e59623ada37b"
+
+  default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.wordpress_target_group.arn // Redirigir al grupo de destino
+    target_group_arn = aws_lb_target_group.wordpress_target_group.arn
   }
 }
 
@@ -70,6 +90,13 @@ resource "aws_security_group" "instance_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port   = 22 # Permitir acceso SSH
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Cambia esto para restringir el acceso según sea necesario
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -81,7 +108,7 @@ resource "aws_security_group" "instance_security_group" {
 # template
 resource "aws_launch_template" "wordpress_template" {
   name_prefix   = "challenger"
-  image_id      = "ami-0ef93f10e57da46b4"
+  image_id      = "ami-08cf0cfa9f9f1b01f"
   instance_type = "t2.micro"
 
   network_interfaces {
